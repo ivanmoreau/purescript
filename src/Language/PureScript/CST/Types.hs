@@ -52,6 +52,9 @@ data Token
   | TokRightParen
   | TokLeftBrace
   | TokRightBrace
+  | TokLeftAngle
+  | TokLeftAngleClose
+  | TokRightAngle
   | TokLeftSquare
   | TokRightSquare
   | TokLeftArrow !SourceStyle
@@ -438,3 +441,6 @@ data Binder a
   | BinderTyped a (Binder a) SourceToken (Type a)
   | BinderOp a (Binder a) (QualifiedName (N.OpName 'N.ValueOpName)) (Binder a)
   deriving (Show, Eq, Ord, Functor, Foldable, Traversable, Generic)
+
+data JSXAttribute a
+  = JSXAttribute a (Name Ident) (Expr a)

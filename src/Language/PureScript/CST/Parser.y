@@ -71,6 +71,9 @@ import Language.PureScript.PSString (PSString)
   ')'                { SourceToken _ TokRightParen }
   '{'                { SourceToken _ TokLeftBrace }
   '}'                { SourceToken _ TokRightBrace }
+  '<'                { SourceToken _ TokLeftAngle }
+  '>'                { SourceToken _ TokRightAngle }
+  '</'               { SourceToken _ TokLeftAngleClose }
   '['                { SourceToken _ TokLeftSquare }
   ']'                { SourceToken _ TokRightSquare }
   '\{'               { SourceToken _ TokLayoutStart }
@@ -423,7 +426,8 @@ expr6 :: { Expr () }
       }
 
 expr7 :: { Expr () }
-  : exprAtom { $1 }
+  : exprJSX  %shift { $1 }
+  | exprAtom { $1 }
   | exprAtom '.' sep(label, '.') { ExprRecordAccessor () (RecordAccessor $1 $2 $3) }
 
 exprAtom :: { Expr () }
@@ -439,6 +443,13 @@ exprAtom :: { Expr () }
   | delim('[', expr, ',', ']') { ExprArray () $1 }
   | delim('{', recordLabel, ',', '}') { ExprRecord () $1 }
   | '(' expr ')' { ExprParens () (Wrapped $1 $2 $3) }
+
+exprJSX :: { Expr () }
+  : '<' qualIdent '>' exprJSXInner '</' qualIdent '>'  %shift {% toReactElement $2 $6 [] $4 }
+
+exprJSXInner :: { Expr () }
+  : exprJSX %shift { $1 }
+  | '{' expr '}' { $2 }
 
 recordLabel :: { RecordLabeled (Expr ()) }
   : label {% fmap RecordPun . toName Ident $ lblTok $1 }

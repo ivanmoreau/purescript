@@ -140,6 +140,23 @@ toQualifiedName k tok = case tokValue tok of
   TokOperator q a   -> flip (QualifiedName tok) (k a) <$> toModuleName tok q
   _                 -> internalError $ "Invalid qualified name: " <> show tok
 
+toReactElementValidateTags :: QualifiedName Ident -> QualifiedName Ident -> Bool
+toReactElementValidateTags q0 q1 =
+  (qualModule q0 == qualModule q1) && (qualName q0 == qualName q1)
+
+asReactTag :: QualifiedName Ident -> QualifiedName Ident
+asReactTag q = q {
+    qualModule = Just $ N.ModuleName "React",
+    qualName = Ident "createElement"
+  }
+
+toReactElement :: QualifiedName Ident -> QualifiedName Ident -> [JSXAttribute ()] -> Expr () -> Parser (Expr ())
+toReactElement tokOpen tokClose _ _
+  | toReactElementValidateTags tokOpen tokClose =
+    pure $ ExprApp () (ExprIdent () (asReactTag tokOpen)) (ExprIdent () tokOpen)
+toReactElement tokOpen tokClose _ _ =
+  internalError $ "Mismatch JSX: " <> show (qualTok tokOpen) <> " with " <> show (qualTok tokClose)
+
 toName :: (Text -> a) -> SourceToken -> Parser (Name a)
 toName k tok = case tokValue tok of
   TokLowerName [] a

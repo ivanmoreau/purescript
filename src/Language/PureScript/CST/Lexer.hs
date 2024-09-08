@@ -293,6 +293,8 @@ token = peek >>= maybe (pure TokEof) k0
     ')'  -> next $> TokRightParen
     '{'  -> next $> TokLeftBrace
     '}'  -> next $> TokRightBrace
+    -- '<'  -> next $> TokLeftAngle
+    '>'  -> next $> TokRightAngle
     '['  -> next $> TokLeftSquare
     ']'  -> next $> TokRightSquare
     '`'  -> next $> TokTick
@@ -329,14 +331,22 @@ token = peek >>= maybe (pure TokEof) k0
 
   {-# INLINE orOperator2 #-}
   orOperator2 :: Token -> Char -> Char -> Lexer Token
-  orOperator2 tok ch1 ch2 = join $ Parser $ \inp _ ksucc ->
+  orOperator2 _ ch1 ch2 = join $ Parser $ \inp _ ksucc ->
     case Text.uncons inp of
       Just (ch2', inp2) | ch2 == ch2' ->
         case Text.uncons inp2 of
           Just (ch3, inp3) | isSymbolChar ch3 ->
             ksucc inp3 $ operator [] [ch1, ch2, ch3]
           _ ->
-            ksucc inp2 $ pure tok
+            ksucc inp2 $ pure TokLeftAngle
+      Just (ch2', _) | isIdentStart ch2' || Char.isUpper ch2' ->
+        ksucc inp $ pure TokLeftAngle
+      Just (ch2', inp2) | ch2' == '/' ->
+        case Text.uncons inp2 of
+          Just (ch3, _) | isIdentStart ch3 || Char.isUpper ch3 ->
+            ksucc inp2 $ pure TokLeftAngleClose
+          _ ->
+            ksucc inp2 $ pure TokLeftAngle
       _ ->
         ksucc inp $ operator [] [ch1]
 
